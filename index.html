@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Horario de Clases - Login y Reporte</title>
+  <!-- Firebase App (the core Firebase SDK) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <!-- Firebase Auth -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <!-- (Opcional) Firebase Firestore si decides almacenar datos -->
+  <!-- <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script> -->
+
+  <!-- Librería para descargar imagen -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #f0f8ff, #d0e7f9);
+      margin: 20px;
+      text-align: center;
+    }
+    h1, h2 {
+      color: #333;
+    }
+    /* Contenedores de secciones */
+    #loginContainer,
+    #studentContainer,
+    #teacherContainer {
+      display: none;
+      margin: 20px auto;
+      width: 90%;
+      max-width: 100%;
+    }
+    /* Botones */
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      background-color: #28a745;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background-color: #218838;
+    }
+    /* Tablas (Créditos, Horario y Resumen) */
+    table {
+      margin: 20px auto;
+      border-collapse: collapse;
+      width: 100%;
+      background-color: #fff;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+      white-space: normal;
+      word-wrap: break-word;
+    }
+    th {
+      background-color: #4CAF50;
+      color: #fff;
+    }
+    /* Tabla de Créditos */
+    #creditsTable th {
+      background-color: #007bff;
+    }
+    /* Tabla resumen (6x8) */
+    #summaryTable th {
+      background-color: #8e44ad;
+    }
+    select {
+      width: 100%;
+      padding: 5px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      white-space: normal;
+    }
+    option {
+      white-space: normal;
+    }
+    /* Botón de Logout */
+    #logoutBtn {
+      background-color: #c0392b;
+    }
+    #logoutBtn:hover {
+      background-color: #e74c3c;
+    }
+  </style>
+</head>
+<body>
+  <!-- Contenedor de Login -->
+  <div id="loginContainer">
+    <h1>Bienvenido al Sistema de Horarios</h1>
+    <p>Inicia sesión con Google para continuar</p>
+    <button id="googleLoginBtn">Iniciar sesión con Google</button>
+  </div>
+
+  <!-- Contenedor para Estudiantes -->
+  <div id="studentContainer">
+    <h1>Horario de Clases</h1>
+    <!-- Tabla de Créditos -->
+    <table id="creditsTable">
+      <thead>
+        <tr>
+          <th>Credits</th>
+          <th>TechnoScience 1</th>
+          <th>TechnoScience 2</th>
+          <th>Maths</th>
+          <th>English</th>
+          <th>Social Studies</th>
+          <th>Spanish</th>
+          <th>Socio-emotional D</th>
+          <th>ERE</th>
+          <th>Physical education</th>
+          <th>Arts &amp; Music</th>
+          <th>Project</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Available credits</td>
+          <td id="avail-TechnoScience1">14</td>
+          <td id="avail-TechnoScience2">11</td>
+          <td id="avail-Maths">10</td>
+          <td id="avail-English">16</td>
+          <td id="avail-SocialStudies">10</td>
+          <td id="avail-Spanish">12</td>
+          <td id="avail-Socio-emotionalD">4</td>
+          <td id="avail-ERE">2</td>
+          <td id="avail-Physicaleducation">4</td>
+          <td id="avail-Arts&Music">4</td>
+          <td id="avail-Project">12</td>
+        </tr>
+        <tr>
+          <td>Used credits</td>
+          <td id="used-TechnoScience1">0</td>
+          <td id="used-TechnoScience2">0</td>
+          <td id="used-Maths">0</td>
+          <td id="used-English">0</td>
+          <td id="used-SocialStudies">0</td>
+          <td id="used-Spanish">0</td>
+          <td id="used-Socio-emotionalD">0</td>
+          <td id="used-ERE">0</td>
+          <td id="used-Physicaleducation">0</td>
+          <td id="used-Arts&Music">0</td>
+          <td id="used-Project">0</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Contenedor del Horario Interactivo -->
+    <div id="scheduleContainer">
+      <table id="scheduleTable">
+        <thead>
+          <tr>
+            <th>Hour</th>
+            <th>Monday</th>
+            <th>Tuesday</th>
+            <th>Wednesday</th>
+            <th>Thursday</th>
+            <th>Friday</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <!-- Se genera dinámicamente -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Contenedor para el resumen del horario (tabla 6x8) -->
+    <div id="summaryContainer">
+      <h2>Resumen del Horario</h2>
+      <table id="summaryTable">
+        <!-- Se genera dinámicamente -->
+      </table>
+    </div>
+    
+    <button onclick="downloadImage()">Descargar Imagen del Resumen</button>
+    <button id="logoutBtn" onclick="logout()">Cerrar Sesión</button>
+  </div>
+
+  <!-- Contenedor para Docentes (Vista de Reporte) -->
+  <div id="teacherContainer">
+    <h1>Reporte del Horario de Clases</h1>
+    <!-- Aquí podrías incluir una vista que agrupe la información de todos los estudiantes.
+         Para este ejemplo, reutilizaremos el resumen generado. -->
+    <div id="teacherReport">
+      <h2>Resumen de Clases Seleccionadas</h2>
+      <table id="summaryTableTeacher">
+        <!-- Se genera dinámicamente (en este ejemplo, copiamos el resumen del estudiante) -->
+      </table>
+    </div>
+    <button onclick="downloadImageTeacher()">Descargar Imagen del Reporte</button>
+    <button id="logoutBtn" onclick="logout()">Cerrar Sesión</button>
+  </div>
+
+  <script>
+    /***************** Firebase Configuración ******************/
+    // REEMPLAZA estos valores con los de tu proyecto Firebase
+    const firebaseConfig = {
+      apiKey: "TU_API_KEY",
+      authDomain: "TU_AUTH_DOMAIN",
+      projectId: "TU_PROJECT_ID",
+      storageBucket: "TU_STORAGE_BUCKET",
+      messagingSenderId: "TU_MESSAGING_SENDER_ID",
+      appId: "TU_APP_ID"
+    };
+    // Inicializar Firebase
+    firebase.initializeApp(firebaseConfig);
+
+    // Autenticación
+    const auth = firebase.auth();
+    
+    // Botón de login con Google
+    const googleLoginBtn = document.getElementById('googleLoginBtn');
+    googleLoginBtn.addEventListener('click', () => {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithPopup(provider).then(result => {
+        // El usuario ha iniciado sesión
+      }).catch(error => {
+        console.error("Error de autenticación:", error);
+      });
+    });
+
+    // Manejo del estado de autenticación
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        // Ocultar el login y mostrar la vista según el rol
+        document.getElementById('loginContainer').style.display = "none";
+        // En este ejemplo, si el email contiene "teacher" se asume rol docente
+        if(user.email.toLowerCase().includes("teacher")) {
+          document.getElementById('teacherContainer').style.display = "block";
+          // (Opcional) Aquí podrías cargar información de todos los estudiantes desde tu base de datos
+          // Por ahora, copiamos el resumen del estudiante si existe para demo
+          copySummaryToTeacherReport();
+        } else {
+          document.getElementById('studentContainer').style.display = "block";
+        }
+      } else {
+        document.getElementById('loginContainer').style.display = "block";
+        document.getElementById('studentContainer').style.display = "none";
+        document.getElementById('teacherContainer').style.display = "none";
+      }
+    });
+
+    function logout() {
+      auth.signOut();
+    }
+
+    /*************** Código del Horario y Resumen ****************/
+    const creditMax = {
+      "TechnoScience 1": 14,
+      "TechnoScience 2": 11,
+      "Maths": 10,
+      "English": 16,
+      "Social Studies": 10,
+      "Spanish": 12,
+      "Socio-emotional D": 4,
+      "ERE": 2,
+      "Physical education": 4,
+      "Arts & Music": 4,
+      "Project": 12
+    };
+
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+    const hours = ['Hour 1', 'Hour 2', 'Hour 3', 'Hour 4', 'Hour 5', 'Hour 6', 'Hour 7'];
+
+    function getSubjectName(optionText) {
+      let subject = optionText.split(":")[0].trim();
+      if(subject.toLowerCase() === "math") return "Maths";
+      if(subject.toLowerCase() === "physical education") return "Physical education";
+      return subject;
+    }
+
+    function recalcCredits() {
+      let counts = {};
+      for (const subj in creditMax) {
+        counts[subj] = 0;
+      }
+      document.querySelectorAll('#scheduleTable select').forEach(select => {
+        const val = select.value;
+        if(val.trim() !== "") {
+          const subj = getSubjectName(val);
+          if(counts.hasOwnProperty(subj)) counts[subj]++;
+        }
+      });
+      for (const subj in creditMax) {
+        const idSafe = subj.replace(/\s+/g, '');
+        document.getElementById('used-' + idSafe).textContent = counts[subj];
+        document.getElementById('avail-' + idSafe).textContent = creditMax[subj] - counts[subj];
+      }
+    }
+
+    // Genera la tabla resumen (6 columnas x 8 filas: encabezado + 7 filas)
+    function updateSummaryTable() {
+      const summaryTable = document.getElementById('summaryTable');
+      summaryTable.innerHTML = "";
+      // Encabezado: Hour + cada día
+      const header = document.createElement('tr');
+      const thHour = document.createElement('th');
+      thHour.textContent = "Hour";
+      header.appendChild(thHour);
+      days.forEach(day => {
+        const th = document.createElement('th');
+        th.textContent = day;
+        header.appendChild(th);
+      });
+      summaryTable.appendChild(header);
+      // Una fila por cada hora
+      hours.forEach((hour, index) => {
+        const tr = document.createElement('tr');
+        const tdHour = document.createElement('td');
+        tdHour.textContent = hour;
+        tr.appendChild(tdHour);
+        days.forEach((day, dIndex) => {
+          const td = document.createElement('td');
+          const scheduleRow = document.querySelectorAll('#scheduleTable tbody tr')[index];
+          if(scheduleRow) {
+            const cell = scheduleRow.children[dIndex+1];
+            if(cell) {
+              const select = cell.querySelector('select');
+              td.textContent = select ? select.value : "";
+            }
+          }
+          tr.appendChild(td);
+        });
+        summaryTable.appendChild(tr);
+      });
+    }
+
+    // Manejador de cambios en los selects
+    function onSelectChange(event) {
+      const select = event.target;
+      const newVal = select.value;
+      const prevVal = select.getAttribute('data-prev') || "";
+      let counts = {};
+      for(const subj in creditMax) { counts[subj] = 0; }
+      document.querySelectorAll('#scheduleTable select').forEach(s => {
+        if(s !== select) {
+          const val = s.value;
+          if(val.trim() !== "") {
+            const subj = getSubjectName(val);
+            if(counts.hasOwnProperty(subj)) counts[subj]++;
+          }
+        }
+      });
+      const subjNew = getSubjectName(newVal);
+      if(counts.hasOwnProperty(subjNew)) {
+        counts[subjNew]++;
+        if(counts[subjNew] > creditMax[subjNew]) {
+          alert('Se excedieron los créditos disponibles para ' + subjNew);
+          select.value = prevVal;
+          return;
+        }
+      }
+      select.setAttribute('data-prev', newVal);
+      recalcCredits();
+      updateSummaryTable();
+      // (Opcional) Si el usuario es docente, podrías actualizar su reporte aquí.
+      copySummaryToTeacherReport();
+    }
+
+    // Genera la tabla del horario interactivo
+    document.addEventListener('DOMContentLoaded', function() {
+      const tableBody = document.getElementById('tableBody');
+      const scheduleData = {
+        'Monday': {
+          'Hour 1': "TechnoScience 1: Teacher Juan, TechnoScience 2: Teacher Nicolas, Math: Teacher Nataly, Project: Assigned teachers",
+          'Hour 2': "English: Teacher Caroline, Spanish: Teacher Wendy, Social Studies: Teacher Jennifer, Arts & Music: Teachers Diana & Marcela",
+          'Hour 3': "English: Teacher Caroline, Spanish: Teacher Wendy, Socio-emotional D: Teacher Oriadna, Project: Assigned teachers",
+          'Hour 4': "English: Teacher Caroline, Math: Teacher Nataly, Socio-emotional D: Teacher Oriadna, Arts & Music: Teachers Diana & Marcela, Project: Assigned teachers",
+          'Hour 5': "Physical Education: Teachers Jhoan & Camila, English: Teacher Caroline, Social Studies: Teacher Jennifer, Project: Assigned teachers, ERE: Teacher Claudia",
+          'Hour 6': "TechnoScience 1: Teacher Juan, English: Teacher Caroline, Social Studies: Teacher Jennifer, Project: Assigned teachers",
+          'Hour 7': "TechnoScience 1: Teacher Juan, English: Teacher Caroline, Social Studies: Teacher Jennifer"
+        },
+        'Tuesday': {
+          'Hour 1': "Math: Teacher Nataly, Spanish: Teacher Wendy, Social Studies: Teacher Jennifer",
+          'Hour 2': "Socio-emotional D: Teacher Oriadna, Spanish: Teacher Wendy, Social Studies: Teacher Jennifer, Project: Assigned teachers",
+          'Hour 3': "TechnoScience 1: Teacher Juan, TechnoScience 2: Teacher Nicolas, Math: Teacher Nataly, English: Teacher Caroline",
+          'Hour 4': "TechnoScience 1: Teacher Juan, TechnoScience 2: Teacher Nicolas, Math: Teacher Nataly, Spanish: Teacher Wendy, Project: Assigned teachers",
+          'Hour 5': "Math: Teacher Nataly, Spanish: Teacher Wendy, Social Studies: Teacher Jennifer",
+          'Hour 6': "Spanish: Teacher Wendy, English: Teacher Caroline, Social Studies: Teacher Jennifer",
+          'Hour 7': "TechnoScience 1: Teacher Juan, TechnoScience 2: Teacher Nicolas, Spanish: Teacher Wendy, Social Studies: Teacher Jennifer"
+        },
+        'Wednesday': {
+          'Hour 1': "TechnoScience 1: Teacher Juan, Math: Teacher Nataly, Spanish: Teacher Wendy, Social Studies: Teacher Jennifer",
+          'Hour 2': "TechnoScience 1: Teacher Juan, Math: Teacher Nataly, Spanish: Teacher Wendy, Social Studies: Teacher Jennifer",
+          'Hour 3': "TechnoScience 1: Teacher Juan, TechnoScience 2: Teacher Nicolas, Math: Teacher Nataly, Spanish: Teacher Wendy, Social Studies: Teacher Jennifer",
+          'Hour 4': "TechnoScience 1: Teacher Juan, English: Teacher Caroline, Project: Assigned teachers",
+          'Hour 5': "TechnoScience 1: Teacher Juan, Math: Teacher Nataly, English: Teacher Caroline, Social Studies: Teacher Jennifer",
+          'Hour 6': "TechnoScience 1: Teacher Juan, TechnoScience 2: Teacher Nicolas, Math: Teacher Nataly, Spanish: Teacher Wendy, Social Studies: Teacher Jennifer",
+          'Hour 7': "TechnoScience 1: Teacher Juan, TechnoScience 2: Teacher Nicolas, Math: Teacher Nataly, English: Teacher Caroline, Social Studies: Teacher Jennifer"
+        },
+        'Thursday': {
+          'Hour 1': "Physical Education: Teachers Jhoan & Camila, Spanish: Teacher Wendy, Social Studies: Teacher Jennifer",
+          'Hour 2': "Project: Assigned teachers, Spanish: Teacher Wendy, Social Studies: Teacher Jennifer, ERE: Teacher Claudia",
+          'Hour 3': "TechnoScience 1: Teacher Juan, Math: Teacher Nataly, English: Teacher Caroline",
+          'Hour 4': "Socio-emotional D: Teacher Oriadna, TechnoScience 1: Teacher Juan, English: Teacher Caroline, Project: Assigned teachers",
+          'Hour 5': "Arts & Music: Teachers Diana & Marcela, English: Teacher Caroline, Social Studies: Teacher Jennifer",
+          'Hour 6': "Spanish: Teacher Wendy, Social Studies: Teacher Jennifer, TechnoScience 2: Teacher Nicolas, Project: Assigned teachers",
+          'Hour 7': "TechnoScience 1: Teacher Juan, TechnoScience 2: Teacher Nicolas, Math: Teacher Nataly, Physical Education: Teachers Jhoan & Camila"
+        },
+        'Friday': {
+          'Hour 1': "TechnoScience 1: Teacher Juan, Math: Teacher Nataly, Social Studies: Teacher Jennifer",
+          'Hour 2': "Physical Education: Teachers Jhoan & Camila, TechnoScience 1: Teacher Juan, Math: Teacher Nataly",
+          'Hour 3': "TechnoScience 1: Teacher Juan, TechnoScience 2: Teacher Nicolas, Spanish: Teacher Wendy, Project: Assigned teachers",
+          'Hour 4': "Arts & Music: Teachers Diana & Marcela, Math: Teacher Nataly, Spanish: Teacher Wendy, English: Teacher Caroline",
+          'Hour 5': "Physical Education: Teachers Jhoan & Camila, Math: Teacher Nataly, Spanish: Teacher Wendy, English: Teacher Caroline",
+          'Hour 6': "TechnoScience 1: Teacher Juan, TechnoScience 2: Teacher Nicolas, Spanish: Teacher Wendy, Social Studies: Teacher Jennifer",
+          'Hour 7': "" 
+        }
+      };
+
+      hours.forEach(hour => {
+        const tr = document.createElement('tr');
+        const th = document.createElement('th');
+        th.textContent = hour;
+        tr.appendChild(th);
+        days.forEach(day => {
+          const td = document.createElement('td');
+          const select = document.createElement('select');
+          select.style.width = '100%';
+          const placeholder = document.createElement('option');
+          placeholder.value = "";
+          placeholder.textContent = "Seleccionar";
+          select.appendChild(placeholder);
+          const optionsStr = scheduleData[day][hour] || "";
+          const options = optionsStr ? optionsStr.split(", ") : [];
+          options.forEach(opt => {
+            const option = document.createElement('option');
+            option.style.whiteSpace = 'normal';
+            option.textContent = opt;
+            select.appendChild(option);
+          });
+          select.value = "";
+          select.setAttribute('data-prev', "");
+          select.addEventListener('change', onSelectChange);
+          td.appendChild(select);
+          tr.appendChild(td);
+        });
+        tableBody.appendChild(tr);
+      });
+      recalcCredits();
+      updateSummaryTable();
+    });
+
+    // Función para copiar el resumen generado al contenedor del docente
+    function copySummaryToTeacherReport() {
+      const summaryTable = document.getElementById('summaryTable').cloneNode(true);
+      const teacherReport = document.getElementById('summaryTableTeacher');
+      if (teacherReport) {
+        teacherReport.parentNode.removeChild(teacherReport);
+      }
+      const newReport = summaryTable;
+      newReport.id = "summaryTableTeacher";
+      // Insertar el reporte en el contenedor del docente
+      const teacherContainer = document.getElementById('teacherContainer');
+      // Eliminar reporte anterior (si existe)
+      const oldReport = document.getElementById('summaryTableTeacher');
+      if(oldReport) oldReport.remove();
+      teacherContainer.appendChild(newReport);
+    }
+
+    // Función para descargar imagen del resumen para docentes
+    function downloadImageTeacher() {
+      const element = document.getElementById('summaryTableTeacher');
+      html2canvas(element, { scale: 2 }).then(canvas => {
+        const dataURL = canvas.toDataURL("image/jpeg", 0.98);
+        const link = document.createElement('a');
+        link.href = dataURL;
+        link.download = 'Reporte_Horario.jpg';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }).catch(err => {
+        console.error("Error generando la imagen:", err);
+      });
+    }
+
+    // Función para descargar imagen del resumen para estudiantes
+    function downloadImage() {
+      const element = document.getElementById('summaryContainer');
+      html2canvas(element, { scale: 2 }).then(canvas => {
+        const dataURL = canvas.toDataURL("image/jpeg", 0.98);
+        const link = document.createElement('a');
+        link.href = dataURL;
+        link.download = 'Resumen_Horario.jpg';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }).catch(err => {
+        console.error("Error generando la imagen:", err);
+      });
+    }
+  </script>
+</body>
+</html>
